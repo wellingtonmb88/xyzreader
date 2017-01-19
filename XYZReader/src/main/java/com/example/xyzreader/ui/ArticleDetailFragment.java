@@ -10,8 +10,11 @@ import android.graphics.Bitmap;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.support.design.widget.CollapsingToolbarLayout;
+import android.support.design.widget.CoordinatorLayout;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ShareCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.widget.NestedScrollView;
 import android.support.v7.graphics.Palette;
 import android.support.v7.widget.Toolbar;
 import android.text.Html;
@@ -102,7 +105,9 @@ public class ArticleDetailFragment extends Fragment implements
         mPhotoView = (ImageView) mRootView.findViewById(R.id.photo);
         mStatusBarColorDrawable = new ColorDrawable(0);
 
-        mRootView.findViewById(R.id.share_fab).setOnClickListener(new View.OnClickListener() {
+        final FloatingActionButton fab = (FloatingActionButton) mRootView.findViewById(R.id.share_fab);
+
+        fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 startActivity(Intent.createChooser(ShareCompat.IntentBuilder.from(getActivity())
@@ -111,6 +116,37 @@ public class ArticleDetailFragment extends Fragment implements
                         .getIntent(), getString(R.string.action_share)));
             }
         });
+
+        NestedScrollView scroller = (NestedScrollView) mRootView.findViewById(R.id.nestedScrollView);
+
+        if (scroller != null) {
+
+            final CoordinatorLayout.LayoutParams layoutParams = (CoordinatorLayout.LayoutParams) fab.getLayoutParams();
+            final int fab_bottomMargin = layoutParams.bottomMargin;
+            scroller.setOnScrollChangeListener(new NestedScrollView.OnScrollChangeListener() {
+                @Override
+                public void onScrollChange(NestedScrollView v, int scrollX,
+                                           int scrollY, int oldScrollX, int oldScrollY) {
+                    if (scrollY > oldScrollY) {
+                        Log.i(TAG, "Scroll DOWN");
+                        fab.animate().translationY(fab.getHeight() + fab_bottomMargin).start();
+                    }
+                    if (scrollY < oldScrollY) {
+                        Log.i(TAG, "Scroll UP");
+                        fab.animate().translationY(0).start();
+                    }
+
+                    if (scrollY == 0) {
+                        Log.i(TAG, "TOP SCROLL");
+                    }
+
+                    if (scrollY == (v.getChildAt(0).getMeasuredHeight() - v.getMeasuredHeight())) {
+                        Log.i(TAG, "BOTTOM SCROLL");
+                        fab.animate().translationY(0).start();
+                    }
+                }
+            });
+        }
 
         bindViews();
         return mRootView;
@@ -133,7 +169,7 @@ public class ArticleDetailFragment extends Fragment implements
             String itemTitle = mCursor.getString(ArticleLoader.Query.TITLE);
             titleView.setText(itemTitle);
             bylineView.setText(Html.fromHtml(
-                           DateUtils.getRelativeTimeSpanString(
+                    DateUtils.getRelativeTimeSpanString(
                             mCursor.getLong(ArticleLoader.Query.PUBLISHED_DATE),
                             System.currentTimeMillis(), DateUtils.HOUR_IN_MILLIS,
                             DateUtils.FORMAT_ABBREV_ALL).toString()
